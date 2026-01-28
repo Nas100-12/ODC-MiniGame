@@ -1,0 +1,31 @@
+<!-- pages/game/game.wxml -->
+<view class="game-container">
+  <canvas 
+    type="2d" 
+    id="gameCanvas" 
+    class="game-canvas"
+    bindtouchstart="handleTouchStart"
+    bindtouchmove="handleTouchMove"
+    bindtouchend="handleTouchEnd">
+  </canvas>
+  
+  <!-- Score Display -->
+  <view class="score-display">
+    <text class="score">Score: {{score}}</text>
+    <text class="high-score">Best: {{highScore}}</text>
+  </view>
+  
+  <!-- Game Over Screen -->
+  <view class="game-over" wx:if="{{gameOver}}">
+    <text class="game-over-title">Game Over!</text>
+    <text class="final-score">Score: {{score}}</text>
+    <button class="restart-btn" bindtap="restartGame">Play Again</button>
+  </view>
+  
+  <!-- Start Screen -->
+  <view class="start-screen" wx:if="{{!gameStarted && !gameOver}}">
+    <text class="title">Liberia Rope Jump</text>
+    <text class="subtitle">Tap left/right to jump!</text>
+    <button class="start-btn" bindtap="startGame">Start Game</button>
+  </view>
+</view>
