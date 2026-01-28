@@ -891,14 +891,7 @@ console.timeEnd('gameLoop') // Should be < 16ms for 60fps
 3. **Code**: Commit often (every hour if possible)
 4. **Integration**: Test together every 4 hours
 
-### Contact Info
-- **Project Lead**: [Name] - [WeChat ID]
-- **Dev 1 (Engine)**: [Name] - [WeChat ID]
-- **Dev 2 (Platforms)**: [Name] - [WeChat ID]
-- **Dev 3 (Collectibles)**: [Name] - [WeChat ID]
-- **Dev 4 (UI/UX)**: [Name] - [WeChat ID]
 
----
 
 ## 📝 Code Standards
 
@@ -959,15 +952,7 @@ const distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2))
 3. **Version 1.3**: Global leaderboards
 4. **Version 2.0**: Multiplayer mode
 
----
 
-## 📄 License & Credits
-
-**Inspired by**: Liberian culture and traditional lappa jumping
-**Developed by**: [Your Team Name]
-**Platform**: WeChat Mini Program (Tencent Cloud)
-
----
 
 ## 🎉 Final Notes
 
