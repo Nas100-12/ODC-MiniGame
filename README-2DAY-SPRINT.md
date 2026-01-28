@@ -105,7 +105,7 @@ Day 2 (8 hours):
 
 ---
 
-### 🔵 **Developer 1: Core Game Engine & Physics**
+### 🔵 **Developer 1 Shallom Nelson: Core Game Engine & Physics**
 
 **Total Time**: 16 hours over 2 days  
 **Priority**: HIGHEST - Other devs depend on this  
@@ -231,7 +231,7 @@ Day 2 (8 hours):
 
 ---
 
-### 🟢 **Developer 2: Platforms & Obstacle System**
+### 🟢 **Developer 2 Gabriel Kun: Platforms & Obstacle System**
 
 **Total Time**: 16 hours over 2 days  
 **Priority**: HIGH - Needed for core gameplay  
@@ -357,7 +357,7 @@ Day 2 (8 hours):
 
 ---
 
-### 🟡 **Developer 3: Collectibles & Power-ups**
+### 🟡 **Developer 3 Archie Forkpoh: Collectibles & Power-ups**
 
 **Total Time**: 16 hours over 2 days  
 **Priority**: MEDIUM - Enhances gameplay  
@@ -483,7 +483,7 @@ Day 2 (8 hours):
 
 ---
 
-### 🟣 **Developer 4: UI/UX & Game States**
+### 🟣 **Developer 4 Bronax Barlue: UI/UX & Game States**
 
 **Total Time**: 16 hours over 2 days  
 **Priority**: MEDIUM - Essential for playability  
