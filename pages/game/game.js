@@ -110,7 +110,9 @@ Page({
     this.loadCharacterImage();
 
     // Base positions
-    this.groundY = this.canvasHeight - 80;
+    // Lower the character closer to the bottom of the screen so feet
+    // visually sit on the ground area of the background image.
+    this.groundY = this.canvasHeight - 40;
     // Treat characterY as the vertical position of the feet.
     // Base position has feet exactly on the ground.
     this.characterBaseY = this.groundY;
@@ -160,7 +162,12 @@ Page({
       ctx.drawImage(this.backgroundImage, 0, 0, w, h);
     }
 
-    
+    // Draw score text on top of the scene
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '20px sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`Score: ${this.data.score}`, 16, 16);
+
     // Draw character with personal jump-rope
     this.drawCharacter(ctx, this.characterX, this.characterY || this.characterBaseY);
   },
