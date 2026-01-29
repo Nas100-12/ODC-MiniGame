@@ -18,12 +18,11 @@
 }
 
 .loading-title{
-  
   font-weight:bold;
   font-size:50rpx;
   padding-bottom:50rpx;
-  
   text-transform:uppercase;
+  animation: loadingFade 1.6s ease-in-out infinite;
 }
 
 .wrapper{
@@ -31,4 +30,16 @@
   flex:flex-wrap;
   justify-content:center;
   padding-top:30rpx;
+}
+
+@keyframes loadingFade {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
