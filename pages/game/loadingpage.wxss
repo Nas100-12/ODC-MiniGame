@@ -1,0 +1,34 @@
+/* loading page styling */
+
+/* loading container */
+
+.container{
+
+  display:flex;
+  padding-top:300rpx;
+  justify-content:center;
+  flex:flex-wrap;
+  width:100%;
+}
+
+.loading-progress{
+
+  background-color:white;
+  width:450rpx;
+}
+
+.loading-title{
+  
+  font-weight:bold;
+  font-size:50rpx;
+  padding-bottom:50rpx;
+  
+  text-transform:uppercase;
+}
+
+.wrapper{
+  display:flex;
+  flex:flex-wrap;
+  justify-content:center;
+  padding-top:30rpx;
+}
