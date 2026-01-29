@@ -5,7 +5,8 @@ Page({
     paused: false,
     characterDirection: 'right',
     jumpHeight: 80,
-    jumpSpeed: 1
+    jumpSpeed: 2,
+    multiplier: 1 // Multiplier added
   },
 
   onLoad() {
@@ -58,6 +59,7 @@ Page({
 
     this.ropeAngle = 0;
     this._wasInAir = false;
+    this._peakY = this.characterBaseY;
 
     this._animating = true;
     this.gameLoop();
@@ -91,6 +93,14 @@ Page({
     this.characterY =
       this.characterBaseY - jumpFactor * this.data.jumpHeight;
 
+    // Track peak jump height
+    const inAir = jumpFactor > 0.3;
+    if (inAir) {
+      if (!this._peakY || this.characterY < this._peakY) {
+        this._peakY = this.characterY; // highest point in current jump
+      }
+    }
+
     // Character movement + background scroll
     if (this.characterX < this.characterMaxX) {
       this.characterX += this.characterSpeed;
@@ -102,17 +112,23 @@ Page({
       this.bgOffsetX = 0;
     }
 
-    // Scoring
-    const inAir = jumpFactor > 0.3;
+    // Scoring on landing
     if (this._wasInAir && !inAir) {
-      const newScore = this.data.score + 1;
+      const jumpHeightPoints = Math.floor((this.characterBaseY - this._peakY) / 5);
+      const landingPoints = 1;
+      const points = (jumpHeightPoints + landingPoints) * this.data.multiplier;
+
+      const newScore = this.data.score + points;
       this.setData({ score: newScore });
 
       if (newScore > this.data.highScore) {
         this.setData({ highScore: newScore });
         wx.setStorageSync('highScore', newScore);
       }
+
+      this._peakY = this.characterBaseY; // reset peak
     }
+
     this._wasInAir = inAir;
   },
 
@@ -132,11 +148,12 @@ Page({
       ctx.drawImage(this.backgroundImage, w - this.bgOffsetX, 0, w, h);
     }
 
-    // Score
+    // Score & multiplier display
     ctx.fillStyle = '#fff';
     ctx.font = '20px sans-serif';
     ctx.fillText(`Score: ${this.data.score}`, 16, 16);
-
+    ctx.fillText(`High Score: ${this.data.highScore}`, 16, 36);
+    
     // Character
     this.drawCharacter(ctx, this.characterX, this.characterY);
 
@@ -217,6 +234,9 @@ Page({
     }
   },
 
+  /* ========================
+     HIGH SCORE
+  ========================= */
   loadHighScore() {
     const highScore = wx.getStorageSync('highScore') || 0;
     this.setData({ highScore });
