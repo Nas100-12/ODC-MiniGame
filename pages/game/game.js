@@ -105,9 +105,14 @@ Page({
 
     console.log('Game starting...');
 
+    // Ensure character image is loaded for rendering
+    this.loadCharacterImage();
+
     // Base positions
     this.groundY = this.canvasHeight - 80;
-    this.characterBaseY = this.groundY - 60; // standing height
+    // Treat characterY as the vertical position of the feet.
+    // Base position has feet exactly on the ground.
+    this.characterBaseY = this.groundY;
     this.characterX = this.canvasWidth / 2;  // center
     this.ropeAngle = 0;
 
@@ -154,165 +159,109 @@ Page({
     const groundY = this.groundY;
     ctx.fillStyle = '#3B5323';
     ctx.fillRect(0, groundY, w, h - groundY);
-
-    // Rope anchors left/right
-    const leftX = w * 0.18;
-    const rightX = w * 0.82;
-    const anchorY = groundY - 10;
-
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#C09050';
-
-    // Rope as an arc rotating around the center
-    const centerX = (leftX + rightX) / 2;
-    const radius = (rightX - leftX) / 2;
-    const angle = this.ropeAngle;
-
-    ctx.beginPath();
-    // segment of circle to resemble rope passing under feet
-    ctx.arc(centerX, anchorY, radius, Math.PI + angle, 2 * Math.PI + angle, false);
-    ctx.stroke();
-
-    // Draw character standing between anchors
+    
+    // Draw character with personal jump-rope
     this.drawCharacter(ctx, this.characterX, this.characterY || this.characterBaseY);
   },
 
-  // Stylized African young lady in native dress, with light 3D shading
+  // Load PNG character using WeChat Mini Program canvas image API
+  loadCharacterImage() {
+    if (this.characterImage || !this.canvas) return;
+
+    const img = this.canvas.createImage();
+    img.onload = () => {
+      this.characterImage = img;
+      this.characterImageLoaded = true;
+
+      // Cache intrinsic size
+      this.characterImageWidth = img.width;
+      this.characterImageHeight = img.height;
+
+      console.log('Character image loaded:', img.width, 'x', img.height);
+    };
+
+    img.onerror = (err) => {
+      console.error('Failed to load character image', err);
+    };
+
+    // Path is from the miniprogram root
+    // Note: folder is named `assests` in this project
+    img.src = '/pages/game/assests/images/character.png';
+  },
+
+  // Draw PNG character anchored so feet align with ground,
+  // plus animated rope using existing ropeAngle logic.
   drawCharacter(ctx, x, y) {
-    // Slight 3D by using highlights / shadows
-    const facingLeft = this.data.characterDirection === 'left';
+    if (!this.characterImageLoaded || !this.characterImage) {
+      // Image not yet ready; skip drawing to avoid flicker.
+      // Background and rope math still update each frame.
+      return;
+    }
+
+    const img = this.characterImage;
+
+    // Choose a logical on-screen height similar to the original
+    // procedurally drawn character (~120px tall).
+    const targetHeight = 120;
+    const scale = targetHeight / this.characterImageHeight;
+    const drawWidth = this.characterImageWidth * scale;
+    const drawHeight = targetHeight;
+
+    // Feet are anchored at (x, y). Compute top-left for drawImage.
+    const topY = y - drawHeight;
+    const leftX = x - drawWidth / 2;
+
+    ctx.save();
+
+    // Support facing left/right by flipping horizontally around the center.
+    if (this.data.characterDirection === 'left') {
+      ctx.translate(x, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        img,
+        leftX - x,
+        topY,
+        drawWidth,
+        drawHeight
+      );
+    } else {
+      ctx.drawImage(
+        img,
+        leftX,
+        topY,
+        drawWidth,
+        drawHeight
+      );
+    }
+
+    ctx.restore();
+
+    // Animated jump rope: arcs over head and under feet,
+    // preserving the existing angle / phase logic.
+    const angle = this.ropeAngle;
+    const phase = (Math.sin(angle) + 1) / 2; // 0..1
+
+    const ropeRadiusX = drawWidth * 0.7;
+    const ropeTopY = topY + drawHeight * 0.18; // slightly above head
+    const ropeBottomY = y + 8;                 // just below feet
+
+    ctx.strokeStyle = '#8B5A2B'; // brown rope
+    ctx.lineWidth = 4;
+
     
-    // Body sizes
-    const headRadius = 16;
-    const bodyHeight = 46;
-    const bodyWidth = 32;
+    
+    // Simple handles near where hands would be.
+    const armY = topY + drawHeight * 0.45;
+    const armReach = drawWidth * 0.55;
+    const handY = armY;
+    const leftHandX = x - armReach;
+    const rightHandX = x + armReach;
 
-    // Shadow ellipse
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.fillStyle = '#8B5A2B';
     ctx.beginPath();
-    ctx.ellipse(x, this.groundY + 4, 38, 8, 0, 0, 2 * Math.PI);
+    ctx.arc(leftHandX, handY, 4, 0, 2 * Math.PI);
+    ctx.arc(rightHandX, handY, 4, 0, 2 * Math.PI);
     ctx.fill();
-
-    // Head (deep brown skin tone with highlight)
-    const headCenterY = y - bodyHeight - headRadius + 10;
-    ctx.fillStyle = '#5A3715';
-    ctx.beginPath();
-    ctx.arc(x, headCenterY, headRadius, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Subtle highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.beginPath();
-    ctx.arc(x - 6, headCenterY - 6, headRadius * 0.6, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Hair (natural textured bun and sides)
-    ctx.fillStyle = '#23130A';
-    ctx.beginPath();
-    ctx.arc(x, headCenterY - headRadius * 0.6, headRadius * 1.1, 0, 2 * Math.PI);
-    ctx.fill();
-    // Side puff
-    ctx.beginPath();
-    ctx.arc(x + (facingLeft ? -headRadius * 0.9 : headRadius * 0.9), headCenterY - 2, headRadius * 0.6, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Simple facial hint (eyes + nose line)
-    ctx.strokeStyle = '#2D1A09';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    if (facingLeft) {
-      ctx.arc(x - 5, headCenterY, 3, 0, Math.PI, false);
-    } else {
-      ctx.arc(x + 5, headCenterY, 3, Math.PI, 0, false);
-    }
-    ctx.stroke();
-
-    // Neck
-    const neckTopY = headCenterY + headRadius - 2;
-    ctx.strokeStyle = '#5A3715';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(x, neckTopY);
-    ctx.lineTo(x, neckTopY + 8);
-    ctx.stroke();
-
-    // Colorful native dress (triangular silhouette)
-    const dressTopY = neckTopY + 8;
-    const dressBottomY = y;
-
-    // Base dress
-    const gradient = ctx.createLinearGradient(x, dressTopY, x, dressBottomY);
-    gradient.addColorStop(0, '#F9A825');  // warm yellow
-    gradient.addColorStop(0.5, '#D84315'); // rich orange
-    gradient.addColorStop(1, '#4A148C');  // deep purple
-
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(x, dressTopY);
-    ctx.lineTo(x - bodyWidth / 2, dressBottomY);
-    ctx.lineTo(x + bodyWidth / 2, dressBottomY);
-    ctx.closePath();
-    ctx.fill();
-
-    // Pattern stripes to evoke native fabric
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x - bodyWidth / 2 + 2, dressTopY + 8);
-    ctx.lineTo(x + bodyWidth / 2 - 2, dressTopY + 16);
-    ctx.moveTo(x - bodyWidth / 2 + 2, dressTopY + 22);
-    ctx.lineTo(x + bodyWidth / 2 - 2, dressTopY + 30);
-    ctx.stroke();
-
-    // Arms extended slightly for rope grip
-    ctx.strokeStyle = '#5A3715';
-    ctx.lineWidth = 4;
-    const armY = dressTopY + 6;
-    const armLength = 26;
-
-    ctx.beginPath();
-    if (facingLeft) {
-      // front arm
-      ctx.moveTo(x, armY);
-      ctx.lineTo(x - armLength, armY + 4);
-      // back arm
-      ctx.moveTo(x, armY - 2);
-      ctx.lineTo(x + armLength * 0.6, armY - 1);
-    } else {
-      // front arm
-      ctx.moveTo(x, armY);
-      ctx.lineTo(x + armLength, armY + 4);
-      // back arm
-      ctx.moveTo(x, armY - 2);
-      ctx.lineTo(x - armLength * 0.6, armY - 1);
-    }
-    ctx.stroke();
-
-    // Legs (bent slightly during jump)
-    const legBaseY = dressBottomY;
-    const kneeOffset = 10 + Math.abs(this.characterBaseY - y) * 0.2;
-    const spread = 6;
-
-    ctx.beginPath();
-    // left leg
-    ctx.moveTo(x - spread, legBaseY);
-    ctx.lineTo(x - spread - 4, legBaseY + kneeOffset);
-    ctx.lineTo(x - spread, legBaseY + kneeOffset + 12);
-    // right leg
-    ctx.moveTo(x + spread, legBaseY);
-    ctx.lineTo(x + spread + 4, legBaseY + kneeOffset);
-    ctx.lineTo(x + spread, legBaseY + kneeOffset + 12);
-    ctx.stroke();
-
-    // Simple sandals
-    ctx.strokeStyle = '#4E342E';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x - spread - 2, legBaseY + kneeOffset + 14);
-    ctx.lineTo(x - spread + 6, legBaseY + kneeOffset + 14);
-    ctx.moveTo(x + spread - 6, legBaseY + kneeOffset + 14);
-    ctx.lineTo(x + spread + 2, legBaseY + kneeOffset + 14);
-    ctx.stroke();
   },
 
   // Restart game button
