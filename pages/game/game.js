@@ -105,7 +105,8 @@ Page({
 
     console.log('Game starting...');
 
-    // Ensure character image is loaded for rendering
+    // Ensure character and background images are loaded for rendering
+    this.loadBackgroundImage();
     this.loadCharacterImage();
 
     // Base positions
@@ -151,17 +152,36 @@ Page({
     const w = this.canvasWidth;
     const h = this.canvasHeight;
 
-    // Background sky
-    ctx.fillStyle = '#87CEEB';
-    ctx.fillRect(0, 0, w, h);
+    // Clear full canvas first
+    ctx.clearRect(0, 0, w, h);
 
-    // Ground
-    const groundY = this.groundY;
-    ctx.fillStyle = '#3B5323';
-    ctx.fillRect(0, groundY, w, h - groundY);
+    // Draw background image if loaded
+    if (this.backgroundImageLoaded && this.backgroundImage) {
+      ctx.drawImage(this.backgroundImage, 0, 0, w, h);
+    }
+
     
     // Draw character with personal jump-rope
     this.drawCharacter(ctx, this.characterX, this.characterY || this.characterBaseY);
+  },
+
+  // Load PNG background image for canvas
+  loadBackgroundImage() {
+    if (this.backgroundImage || !this.canvas) return;
+
+    const img = this.canvas.createImage();
+    img.onload = () => {
+      this.backgroundImage = img;
+      this.backgroundImageLoaded = true;
+      console.log('Background image loaded');
+    };
+
+    img.onerror = (err) => {
+      console.error('Failed to load background image', err);
+    };
+
+    // Path is from the miniprogram root
+    img.src = '/pages/game/assests/images/bg-image.png';
   },
 
   // Load PNG character using WeChat Mini Program canvas image API
@@ -248,7 +268,6 @@ Page({
     ctx.strokeStyle = '#8B5A2B'; // brown rope
     ctx.lineWidth = 4;
 
-    
     
     // Simple handles near where hands would be.
     const armY = topY + drawHeight * 0.45;
