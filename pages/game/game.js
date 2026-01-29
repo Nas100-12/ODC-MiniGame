@@ -59,17 +59,22 @@ Page({
     this.ropeAngle = 0;
     this._wasInAir = false;
 
-    if (!this._animating) {
-      this._animating = true;
-      this.gameLoop();
-    }
+    this._animating = true;
+    this.gameLoop();
   },
 
+  /* =========================
+     MAIN LOOP
+  ========================= */
   gameLoop() {
     if (!this._animating) return;
+
     this.updateScene();
     this.drawScene();
-    this.canvas.requestAnimationFrame(this.gameLoop.bind(this));
+
+    if (this._animating) {
+      this.canvas.requestAnimationFrame(this.gameLoop.bind(this));
+    }
   },
 
   /* =========================
@@ -78,14 +83,15 @@ Page({
   updateScene() {
     if (this.data.paused) return;
 
-    // Rope & jump
+    // Rope / jump animation
     const speed = Math.max(0.3, this.data.jumpSpeed);
     this.ropeAngle += 0.08 * speed;
 
     const jumpFactor = Math.abs(Math.sin(this.ropeAngle));
-    this.characterY = this.characterBaseY - jumpFactor * this.data.jumpHeight;
+    this.characterY =
+      this.characterBaseY - jumpFactor * this.data.jumpHeight;
 
-    // Character movement
+    // Character movement + background scroll
     if (this.characterX < this.characterMaxX) {
       this.characterX += this.characterSpeed;
     } else {
@@ -96,7 +102,7 @@ Page({
       this.bgOffsetX = 0;
     }
 
-    // Score logic
+    // Scoring
     const inAir = jumpFactor > 0.3;
     if (this._wasInAir && !inAir) {
       const newScore = this.data.score + 1;
@@ -133,6 +139,17 @@ Page({
 
     // Character
     this.drawCharacter(ctx, this.characterX, this.characterY);
+
+    // Pause overlay
+    if (this.data.paused) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#fff';
+      ctx.font = '32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAUSED', w / 2, h / 2);
+      ctx.textAlign = 'left';
+    }
   },
 
   /* =========================
@@ -184,10 +201,20 @@ Page({
   },
 
   /* =========================
-     INPUT
+     INPUT (TAP TO PAUSE/RESUME)
   ========================= */
-  togglePause() {
-    this.setData({ paused: !this.data.paused });
+  handleCanvasTap() {
+    const paused = !this.data.paused;
+    this.setData({ paused });
+
+    if (paused) {
+      this._animating = false;
+    } else {
+      if (!this._animating) {
+        this._animating = true;
+        this.gameLoop();
+      }
+    }
   },
 
   loadHighScore() {

@@ -1,21 +1,29 @@
 <!-- pages/game/game.wxml -->
 <view class="game-container">
-  <!-- Canvas (BACKGROUND) -->
+
+  <!-- GAME CANVAS -->
   <canvas
-    type="2d"
     id="gameCanvas"
+    type="2d"
     class="game-canvas"
-    bindtouchstart="handleTouchStart"
-    bindtouchmove="handleTouchMove"
-    bindtouchend="handleTouchEnd"
+    bindtap="handleCanvasTap"
   ></canvas>
-  
-  <!-- UI LAYER -->
+
+  <!-- UI LAYER (OVER CANVAS) -->
   <view class="ui-layer">
-    <!-- Score Display -->
+
+    <!-- SCORE -->
     <view class="score-display">
       <text class="score">Score: {{score}}</text>
-      
+      <text class="score">High: {{highScore}}</text>
     </view>
+
+    <!-- PAUSE INDICATOR -->
+    <view wx:if="{{paused}}" class="pause-overlay">
+      <text class="pause-text">PAUSED</text>
+      <text class="pause-hint">Tap to Resume</text>
+    </view>
+
   </view>
+
 </view>
