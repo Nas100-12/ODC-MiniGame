@@ -2,13 +2,15 @@
 
 /* loading container */
 
-.container{
 
+.container{
   display:flex;
-  padding-top:300rpx;
+  flex-direction:column;
+  align-items:center;
   justify-content:center;
-  flex:flex-wrap;
-  width:100%;
+  min-height:100vh;
+  width:100vw;
+  position:relative;
 }
 
 .loading-progress{
@@ -42,4 +44,10 @@
   100% {
     opacity: 0;
   }
+}
+
+.loading-page {
+    background-image: url('../assests/images/your-image-name.jpg');
+    background-size: cover;
+    background-position: center;
 }

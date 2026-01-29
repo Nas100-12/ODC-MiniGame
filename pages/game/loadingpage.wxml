@@ -1,7 +1,14 @@
-<view class="container" id="loading-container">
-    <!-- game loading title -->
-    <text class="loading-title">Game Loading</text>
-</view>
-<view class="wrapper">
-    <progress class="loading-progress" percent="{{percent}}" active activeColor="#4A90E2" stroke-width="8" show-info="false"></progress>
+<view class="container loading-bg" id="loading-container">
+  <!-- game loading title -->
+  <text class="loading-title">Game Loading</text>
+  <view class="wrapper">
+    <progress
+      class="loading-progress"
+      percent="{{percent}}"
+      active
+      activeColor="#4A90E2"
+      stroke-width="8"
+      show-info="false"
+    ></progress>
+  </view>
 </view>

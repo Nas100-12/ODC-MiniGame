@@ -8,6 +8,7 @@ Page({
     canvasReady: false,
     gameStarted: false,
     gameOver: false,
+    paused: false,               // pause state
     // Character + rope controls
     characterDirection: 'right', // 'left' or 'right'
     jumpHeight: 80,              // base jump height
@@ -65,11 +66,7 @@ Page({
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     
-    // Ground
-    const groundY = this.canvasHeight - 80;
-    ctx.fillStyle = '#3B5323';
-    ctx.fillRect(0, groundY, this.canvasWidth, this.canvasHeight - groundY);
-    
+
     // Hint text
     ctx.fillStyle = 'white';
     ctx.font = '18px sans-serif';
@@ -146,6 +143,26 @@ Page({
     const jumpFactor = Math.abs(Math.sin(this.ropeAngle));
     const height = this.data.jumpHeight;
     this.characterY = this.characterBaseY - jumpFactor * height;
+
+    // Increment score when a full jump cycle completes (character lands).
+    const wasInAir = this._wasInAir || false;
+    const inAir = jumpFactor > 0.3;
+    if (wasInAir && !inAir) {
+      const newScore = this.data.score + 1;
+      const updates = { score: newScore };
+
+      if (newScore > this.data.highScore) {
+        updates.highScore = newScore;
+        try {
+          wx.setStorageSync('highScore', newScore);
+        } catch (e) {
+          console.error('Failed to save high score:', e);
+        }
+      }
+
+      this.setData(updates);
+    }
+    this._wasInAir = inAir;
   },
 
   // Draw background, rope and character
@@ -188,7 +205,7 @@ Page({
     };
 
     // Path is from the miniprogram root
-    img.src = '/pages/game/assests/images/bg-image.png';
+    img.src = '/pages/game/assests/images/bg-image.jpeg';
   },
 
   // Load PNG character using WeChat Mini Program canvas image API
@@ -269,10 +286,10 @@ Page({
     const phase = (Math.sin(angle) + 1) / 2; // 0..1
 
     const ropeRadiusX = drawWidth * 0.7;
-    const ropeTopY = topY + drawHeight * 0.18; // slightly above head
-    const ropeBottomY = y + 8;                 // just below feet
+    const ropeTopY = topY + drawHeight * 0.18;
+    const ropeBottomY = y + 8;
 
-    ctx.strokeStyle = '#8B5A2B'; // brown rope
+    ctx.strokeStyle = '#8B5A2B';
     ctx.lineWidth = 4;
 
     
@@ -314,5 +331,51 @@ Page({
   slowDown() {
     const next = Math.max(this.data.jumpSpeed - 0.2, 0.3);
     this.setData({ jumpSpeed: next });
+  },
+
+  // Toggle pause state
+  togglePause() {
+    const newPausedState = !this.data.paused;
+    this.setData({ paused: newPausedState });
+  },
+
+  // Handle touch start - toggle animation on/off
+  handleTouchStart(e) {
+    // Toggle animation state
+    if (this._animating) {
+      // Stop the animation loop
+      this._animating = false;
+      
+      // Set character to ground position immediately
+      this.characterY = this.characterBaseY;
+      // Stop the rope rotation
+      this.ropeAngle = 0;
+      // Reset the "was in air" state
+      this._wasInAir = false;
+      
+      // Draw one final frame to show character at rest
+      this.drawScene();
+    } else {
+      // Resume the animation loop
+      this._animating = true;
+      
+      const loop = () => {
+        if (!this._animating) return;
+        this.updateScene();
+        this.drawScene();
+        this.canvas.requestAnimationFrame(loop);
+      };
+      this.canvas.requestAnimationFrame(loop);
+    }
+  },
+
+  // Handle touch move (optional, can be used for additional logic)
+  handleTouchMove(e) {
+    // Currently not needed, but can be extended for swiping mechanics
+  },
+
+  // Handle touch end (optional, can be used for additional logic)
+  handleTouchEnd(e) {
+    // Currently not needed, but can be extended for additional logic
   }
 });
