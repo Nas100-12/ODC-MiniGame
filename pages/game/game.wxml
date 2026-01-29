@@ -1,29 +1,21 @@
 <!-- pages/game/game.wxml -->
 <view class="game-container">
-  <canvas type="2d" id="gameCanvas" class="game-canvas" bindtouchstart="handleTouchStart" bindtouchmove="handleTouchMove" bindtouchend="handleTouchEnd"></canvas>
-  <!-- Score Display -->
-  <view class="score-display">
-    <text class="score">Score: {{score}}
-    </text>
-    <text class="level"id="level">Level: 1</text>
-    <!-- <text class="high-score">Best: {{highScore}}</text> -->
-  </view>
+  <!-- Canvas (BACKGROUND) -->
+  <canvas
+    type="2d"
+    id="gameCanvas"
+    class="game-canvas"
+    bindtouchstart="handleTouchStart"
+    bindtouchmove="handleTouchMove"
+    bindtouchend="handleTouchEnd"
+  ></canvas>
   
-  <!-- Character Controls
-  <view class="control-panel">
-    <view class="controls-row">
-      <button class="control-btn" bindtap="turnLeft">Left</button>
-      <button class="control-btn" bindtap="jumpHigher">Up</button>
-      <button class="control-btn" bindtap="turnRight">Right</button>
+  <!-- UI LAYER -->
+  <view class="ui-layer">
+    <!-- Score Display -->
+    <view class="score-display">
+      <text class="score">Score: {{score}}</text>
+      
     </view>
-    <view class="controls-row"> -->
-      <!-- <button class="control-btn" bindtap="slowDown">Down</button>
-    </view>
-  </view> -->
-  <!-- Game Over Screen -->
-  <!-- <view class="game-over" wx:if="{{gameOver}}">
-    <text class="game-over-title">Game Over!</text>
-    <text class="final-score">Score: {{score}}</text>
-    <button class="restart-btn" bindtap="restartGame">Play Again</button>
-  </view> -->
+  </view>
 </view>
