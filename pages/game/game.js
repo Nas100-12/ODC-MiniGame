@@ -3,15 +3,41 @@ Page({
     score: 0,
     highScore: 0,
     paused: false,
-    characterDirection: 'right',
+
+    level: 1,
+
+    // RESULT POPUP
+    showResult: false,
+    resultText: '',
+
+    // TIMER
+    gameTimer: null,
+    countdownTimer: null,
+    gameTimeLimit: 20000,
+    timeLeft: 0,
+
     jumpHeight: 80,
-    jumpSpeed: 2,
-    multiplier: 1 // Multiplier added
+    jumpSpeed: 2
   },
 
   onLoad() {
     this.initCanvas();
     this.loadHighScore();
+    this.initSounds();
+  },
+
+  /* =========================
+     SOUNDS
+  ========================= */
+  initSounds() {
+    this.jumpSound = wx.createInnerAudioContext();
+    this.jumpSound.src = '/pages/game/assests/sounds/jump.mp3';
+
+    this.winSound = wx.createInnerAudioContext();
+    this.winSound.src = '/pages/game/assests/sounds/win.mp3';
+
+    this.loseSound = wx.createInnerAudioContext();
+    this.loseSound.src = '/pages/game/assests/sounds/lose.mp3';
   },
 
   /* =========================
@@ -61,7 +87,10 @@ Page({
     this._wasInAir = false;
     this._peakY = this.characterBaseY;
 
+    this._ending = false;
     this._animating = true;
+
+    this.startGameTimer();
     this.gameLoop();
   },
 
@@ -74,34 +103,33 @@ Page({
     this.updateScene();
     this.drawScene();
 
-    if (this._animating) {
-      this.canvas.requestAnimationFrame(this.gameLoop.bind(this));
-    }
+    this.canvas.requestAnimationFrame(this.gameLoop.bind(this));
   },
 
   /* =========================
      UPDATE LOGIC
   ========================= */
   updateScene() {
-    if (this.data.paused) return;
+    if (this.data.showResult) return;
 
-    // Rope / jump animation
-    const speed = Math.max(0.3, this.data.jumpSpeed);
-    this.ropeAngle += 0.08 * speed;
-
+    // Jump animation
+    this.ropeAngle += 0.08 * this.data.jumpSpeed;
     const jumpFactor = Math.abs(Math.sin(this.ropeAngle));
+
     this.characterY =
       this.characterBaseY - jumpFactor * this.data.jumpHeight;
 
-    // Track peak jump height
     const inAir = jumpFactor > 0.3;
-    if (inAir) {
-      if (!this._peakY || this.characterY < this._peakY) {
-        this._peakY = this.characterY; // highest point in current jump
-      }
+
+    if (inAir && !this._wasInAir) {
+      this.jumpSound.play();
     }
 
-    // Character movement + background scroll
+    if (inAir && this.characterY < this._peakY) {
+      this._peakY = this.characterY;
+    }
+
+    // Horizontal movement
     if (this.characterX < this.characterMaxX) {
       this.characterX += this.characterSpeed;
     } else {
@@ -112,24 +140,94 @@ Page({
       this.bgOffsetX = 0;
     }
 
-    // Scoring on landing
+    // LANDING
     if (this._wasInAir && !inAir) {
-      const jumpHeightPoints = Math.floor((this.characterBaseY - this._peakY) / 5);
-      const landingPoints = 1;
-      const points = (jumpHeightPoints + landingPoints) * this.data.multiplier;
+      const jumpPoints =
+        Math.floor((this.characterBaseY - this._peakY) / 5);
 
-      const newScore = this.data.score + points;
-      this.setData({ score: newScore });
+      this.data.score += jumpPoints;
 
-      if (newScore > this.data.highScore) {
-        this.setData({ highScore: newScore });
-        wx.setStorageSync('highScore', newScore);
+      if (this.data.score > this.data.highScore) {
+        this.data.highScore = this.data.score;
+        wx.setStorageSync('highScore', this.data.highScore);
       }
 
-      this._peakY = this.characterBaseY; // reset peak
+      this.setData({
+        score: this.data.score,
+        highScore: this.data.highScore
+      });
+
+      this._peakY = this.characterBaseY;
+
+      // SAFE GAME END (after landing only)
+      if (this._ending) {
+        this.endGame(false);
+      }
     }
 
     this._wasInAir = inAir;
+  },
+
+  /* =========================
+     TIMER
+  ========================= */
+  startGameTimer() {
+    clearTimeout(this.data.gameTimer);
+    clearInterval(this.data.countdownTimer);
+
+    const timeLimit =
+      Math.max(6000, this.data.gameTimeLimit - (this.data.level - 1) * 2000);
+
+    this.setData({ timeLeft: Math.floor(timeLimit / 1000) });
+
+    const gameTimer = setTimeout(() => {
+      this._ending = true;
+    }, timeLimit);
+
+    const countdownTimer = setInterval(() => {
+      if (this.data.timeLeft <= 0) return;
+      this.setData({ timeLeft: this.data.timeLeft - 1 });
+    }, 1000);
+
+    this.setData({ gameTimer, countdownTimer });
+  },
+
+  /* =========================
+     END GAME
+  ========================= */
+  endGame(isWin) {
+    clearTimeout(this.data.gameTimer);
+    clearInterval(this.data.countdownTimer);
+
+    this._animating = false;
+
+    isWin ? this.winSound.play() : this.loseSound.play();
+
+    this.setData({
+      paused: true,
+      showResult: true,
+      resultText: isWin ? 'WON' : 'LOST'
+    });
+  },
+
+  resumeGame() {
+    this.setData({
+      score: 0,
+      paused: false,
+      showResult: false,
+      level: this.data.resultText === 'WON'
+        ? this.data.level + 1
+        : this.data.level
+    });
+
+    this.ropeAngle = 0;
+    this._peakY = this.characterBaseY;
+    this._wasInAir = false;
+    this._ending = false;
+
+    this.startGameTimer();
+    this._animating = true;
+    this.gameLoop();
   },
 
   /* =========================
@@ -142,29 +240,39 @@ Page({
 
     ctx.clearRect(0, 0, w, h);
 
-    // Scrolling background
     if (this.backgroundImageLoaded) {
       ctx.drawImage(this.backgroundImage, -this.bgOffsetX, 0, w, h);
       ctx.drawImage(this.backgroundImage, w - this.bgOffsetX, 0, w, h);
     }
 
-    // Score & multiplier display
+    // HUD
     ctx.fillStyle = '#fff';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(`Score: ${this.data.score}`, 16, 16);
-    ctx.fillText(`High Score: ${this.data.highScore}`, 16, 36);
-    
-    // Character
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`Score: ${this.data.score}`, 16, 24);
+    ctx.fillText(`Time: ${this.data.timeLeft}s`, 16, 48);
+    ctx.fillText(`High: ${this.data.highScore}`, 16, 72);
+    ctx.fillText(`Level: ${this.data.level}`, 16, 96);
+
     this.drawCharacter(ctx, this.characterX, this.characterY);
 
-    // Pause overlay
-    if (this.data.paused) {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    if (this.data.showResult) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, w, h);
+
       ctx.fillStyle = '#fff';
-      ctx.font = '32px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('PAUSED', w / 2, h / 2);
+
+      ctx.font = '40px sans-serif';
+      ctx.fillText(this.data.resultText, w / 2, h / 2 - 80);
+
+      ctx.font = '22px sans-serif';
+      ctx.fillText(`Score: ${this.data.score}`, w / 2, h / 2 - 20);
+      ctx.fillText(`High Score: ${this.data.highScore}`, w / 2, h / 2 + 10);
+      ctx.fillText(`Level: ${this.data.level}`, w / 2, h / 2 + 40);
+
+      ctx.font = '26px sans-serif';
+      ctx.fillText('Tap to Continue', w / 2, h / 2 + 90);
+
       ctx.textAlign = 'left';
     }
   },
@@ -173,7 +281,6 @@ Page({
      ASSETS
   ========================= */
   loadBackgroundImage() {
-    if (this.backgroundImage) return;
     const img = this.canvas.createImage();
     img.onload = () => {
       this.backgroundImage = img;
@@ -183,7 +290,6 @@ Page({
   },
 
   loadCharacterImage() {
-    if (this.characterImage) return;
     const img = this.canvas.createImage();
     img.onload = () => {
       this.characterImage = img;
@@ -194,48 +300,32 @@ Page({
     img.src = '/pages/game/assests/images/character.png';
   },
 
-  /* =========================
-     CHARACTER DRAW
-  ========================= */
   drawCharacter(ctx, x, y) {
     if (!this.characterImageLoaded) return;
 
     const targetHeight = 120;
     const scale = targetHeight / this.characterImageHeight;
-    const drawWidth = this.characterImageWidth * scale;
-    const drawHeight = targetHeight;
-
-    const topY = y - drawHeight;
-    const leftX = x - drawWidth / 2;
 
     ctx.drawImage(
       this.characterImage,
-      leftX,
-      topY,
-      drawWidth,
-      drawHeight
+      x - (this.characterImageWidth * scale) / 2,
+      y - targetHeight,
+      this.characterImageWidth * scale,
+      targetHeight
     );
   },
 
   /* =========================
-     INPUT (TAP TO PAUSE/RESUME)
+     INPUT
   ========================= */
   handleCanvasTap() {
-    const paused = !this.data.paused;
-    this.setData({ paused });
-
-    if (paused) {
-      this._animating = false;
-    } else {
-      if (!this._animating) {
-        this._animating = true;
-        this.gameLoop();
-      }
+    if (this.data.showResult) {
+      this.resumeGame();
     }
   },
 
-  /* ========================
-     HIGH SCORE
+  /* =========================
+     STORAGE
   ========================= */
   loadHighScore() {
     const highScore = wx.getStorageSync('highScore') || 0;
