@@ -3,14 +3,11 @@ Page({
     score: 0,
     highScore: 0,
     paused: false,
-
     level: 1,
 
-    // RESULT POPUP
     showResult: false,
     resultText: '',
 
-    // TIMER
     gameTimer: null,
     countdownTimer: null,
     gameTimeLimit: 20000,
@@ -21,27 +18,40 @@ Page({
   },
 
   onLoad() {
+    this.audioUnlocked = false;
     this.initCanvas();
     this.loadHighScore();
     this.initSounds();
   },
 
   /* =========================
-     SOUNDS
+     SOUNDS (SAFE)
   ========================= */
   initSounds() {
-    this.jumpSound = wx.createInnerAudioContext();
-    this.jumpSound.src = '/pages/game/assests/sounds/jump.mp3';
+    const createSound = (src) => {
+      const audio = wx.createInnerAudioContext();
+      audio.src = src;
+      audio.volume = 1;
+      audio.obeyMuteSwitch = false;
+      return audio;
+    };
 
-    this.winSound = wx.createInnerAudioContext();
-    this.winSound.src = '/pages/game/assests/sounds/win.mp3';
+    this.jumpSound = createSound('/pages/game/assests/sounds/jump.mp3');
+    this.winSound = createSound('/pages/game/assests/sounds/win.mp3');
+    this.loseSound = createSound('/pages/game/assests/sounds/lose.mp3');
+  },
 
-    this.loseSound = wx.createInnerAudioContext();
-    this.loseSound.src = '/pages/game/assests/sounds/lose.mp3';
+  unlockAudio() {
+    if (this.audioUnlocked) return;
+    this.audioUnlocked = true;
+
+    // Silent unlock trick
+    this.jumpSound.play();
+    this.jumpSound.pause();
   },
 
   /* =========================
-     CANVAS INITIALIZATION
+     CANVAS INIT
   ========================= */
   initCanvas() {
     const query = wx.createSelectorQuery();
@@ -112,7 +122,6 @@ Page({
   updateScene() {
     if (this.data.showResult) return;
 
-    // Jump animation
     this.ropeAngle += 0.08 * this.data.jumpSpeed;
     const jumpFactor = Math.abs(Math.sin(this.ropeAngle));
 
@@ -122,6 +131,7 @@ Page({
     const inAir = jumpFactor > 0.3;
 
     if (inAir && !this._wasInAir) {
+      this.jumpSound.stop();
       this.jumpSound.play();
     }
 
@@ -129,7 +139,6 @@ Page({
       this._peakY = this.characterY;
     }
 
-    // Horizontal movement
     if (this.characterX < this.characterMaxX) {
       this.characterX += this.characterSpeed;
     } else {
@@ -140,7 +149,6 @@ Page({
       this.bgOffsetX = 0;
     }
 
-    // LANDING
     if (this._wasInAir && !inAir) {
       const jumpPoints =
         Math.floor((this.characterBaseY - this._peakY) / 5);
@@ -159,7 +167,6 @@ Page({
 
       this._peakY = this.characterBaseY;
 
-      // SAFE GAME END (after landing only)
       if (this._ending) {
         this.endGame(false);
       }
@@ -175,8 +182,10 @@ Page({
     clearTimeout(this.data.gameTimer);
     clearInterval(this.data.countdownTimer);
 
-    const timeLimit =
-      Math.max(6000, this.data.gameTimeLimit - (this.data.level - 1) * 2000);
+    const timeLimit = Math.max(
+      6000,
+      this.data.gameTimeLimit - (this.data.level - 1) * 2000
+    );
 
     this.setData({ timeLeft: Math.floor(timeLimit / 1000) });
 
@@ -245,7 +254,6 @@ Page({
       ctx.drawImage(this.backgroundImage, w - this.bgOffsetX, 0, w, h);
     }
 
-    // HUD
     ctx.fillStyle = '#fff';
     ctx.font = '18px sans-serif';
     ctx.fillText(`Score: ${this.data.score}`, 16, 24);
@@ -258,21 +266,12 @@ Page({
     if (this.data.showResult) {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, w, h);
-
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'center';
-
       ctx.font = '40px sans-serif';
-      ctx.fillText(this.data.resultText, w / 2, h / 2 - 80);
-
+      ctx.fillText(this.data.resultText, w / 2, h / 2 - 60);
       ctx.font = '22px sans-serif';
-      ctx.fillText(`Score: ${this.data.score}`, w / 2, h / 2 - 20);
-      ctx.fillText(`High Score: ${this.data.highScore}`, w / 2, h / 2 + 10);
-      ctx.fillText(`Level: ${this.data.level}`, w / 2, h / 2 + 40);
-
-      ctx.font = '26px sans-serif';
-      ctx.fillText('Tap to Continue', w / 2, h / 2 + 90);
-
+      ctx.fillText('Tap to Continue', w / 2, h / 2 + 40);
       ctx.textAlign = 'left';
     }
   },
@@ -302,23 +301,23 @@ Page({
 
   drawCharacter(ctx, x, y) {
     if (!this.characterImageLoaded) return;
-
-    const targetHeight = 120;
-    const scale = targetHeight / this.characterImageHeight;
-
+    const h = 120;
+    const scale = h / this.characterImageHeight;
     ctx.drawImage(
       this.characterImage,
       x - (this.characterImageWidth * scale) / 2,
-      y - targetHeight,
+      y - h,
       this.characterImageWidth * scale,
-      targetHeight
+      h
     );
   },
 
   /* =========================
-     INPUT
+     INPUT (UNLOCK AUDIO)
   ========================= */
   handleCanvasTap() {
+    this.unlockAudio();
+
     if (this.data.showResult) {
       this.resumeGame();
     }
@@ -328,7 +327,8 @@ Page({
      STORAGE
   ========================= */
   loadHighScore() {
-    const highScore = wx.getStorageSync('highScore') || 0;
-    this.setData({ highScore });
+    this.setData({
+      highScore: wx.getStorageSync('highScore') || 0
+    });
   }
 });
